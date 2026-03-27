@@ -16,19 +16,51 @@ services:
     networks:
       - escola_network
 
+  redis:
+    image: redis:alpine
+    container_name: redis_container
+    restart: always 
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+    networks:
+      - escola_network
+
   app:
     build: .
     container_name: fastapi_app
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://db:27017/escola 
+      - MONGODB_URL=mongodb://db:27017/escola
       - DATABASE_NAME=escola
+      - REDIS_URL=redis://redis:6379
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - .:/app
+    networks:
+      - escola_network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo_express_ui
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://db:27017/
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - escola_network
 
